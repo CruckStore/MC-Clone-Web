@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useSphere } from '@react-three/cannon'
 import * as THREE from 'three'
 
 const Player: React.FC = () => {
   const { camera } = useThree()
-  const [canJump, setCanJump] = useState(false)
   const keys = useRef({ forward: false, backward: false, left: false, right: false, jump: false })
   const speed = 5
   const [ref, api] = useSphere(() => ({
@@ -13,7 +12,7 @@ const Player: React.FC = () => {
     position: [0, 5, 0],
     args: [0.5],
     fixedRotation: true,
-    linearDamping: 0.1
+    linearDamping: 0.9
   }))
 
   useEffect(() => {
@@ -72,10 +71,6 @@ const Player: React.FC = () => {
   }, [api.velocity])
 
   useFrame((state, delta) => {
-    if (ref.current && ref.current.position.y <= 1.01) {
-      setCanJump(true)
-    }
-    const currentVelocity = velocity.current
     const front = new THREE.Vector3(0, 0, -1)
     front.applyQuaternion(camera.quaternion)
     front.y = 0
@@ -90,10 +85,10 @@ const Player: React.FC = () => {
     if (keys.current.left) direction.sub(right)
     if (keys.current.right) direction.add(right)
     if (direction.length() > 0) direction.normalize()
+    const currentVelocity = velocity.current
     api.velocity.set(direction.x * speed, currentVelocity[1], direction.z * speed)
-    if (keys.current.jump && canJump) {
+    if (keys.current.jump && Math.abs(currentVelocity[1]) < 0.05) {
       api.velocity.set(currentVelocity[0], 5, currentVelocity[2])
-      setCanJump(false)
     }
     camera.position.copy(ref.current.position)
   })
