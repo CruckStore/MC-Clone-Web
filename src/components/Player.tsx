@@ -70,7 +70,7 @@ const Player: React.FC = () => {
     return unsubscribe
   }, [api.velocity])
 
-  useFrame((state, delta) => {
+  useFrame((_, _delta) => {
     const front = new THREE.Vector3(0, 0, -1)
     front.applyQuaternion(camera.quaternion)
     front.y = 0
