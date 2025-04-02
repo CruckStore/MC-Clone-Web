@@ -13,7 +13,7 @@ const Player: React.FC = () => {
     position: [0, 5, 0],
     args: [0.5],
     fixedRotation: true,
-    linearDamping: 0.8
+    linearDamping: 0.1
   }))
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const Player: React.FC = () => {
     }
   }, [])
 
-  const velocity = useRef([0, 0, 0])
+  const velocity = useRef<[number, number, number]>([0, 0, 0])
   useEffect(() => {
     const unsubscribe = api.velocity.subscribe(v => {
       velocity.current = v
@@ -72,32 +72,30 @@ const Player: React.FC = () => {
   }, [api.velocity])
 
   useFrame((state, delta) => {
-    if (ref.current && ref.current.position.y <= 0.6) {
+    if (ref.current && ref.current.position.y <= 1.01) {
       setCanJump(true)
     }
     const currentVelocity = velocity.current
-    const frontVector = new THREE.Vector3(0, 0, -1)
-    const sideVector = new THREE.Vector3(-1, 0, 0)
-    frontVector.applyQuaternion(camera.quaternion)
-    sideVector.applyQuaternion(camera.quaternion)
-    frontVector.y = 0
-    sideVector.y = 0
-    frontVector.normalize()
-    sideVector.normalize()
+    const front = new THREE.Vector3(0, 0, -1)
+    front.applyQuaternion(camera.quaternion)
+    front.y = 0
+    front.normalize()
+    const right = new THREE.Vector3(1, 0, 0)
+    right.applyQuaternion(camera.quaternion)
+    right.y = 0
+    right.normalize()
     const direction = new THREE.Vector3()
-    if (keys.current.forward) direction.add(frontVector)
-    if (keys.current.backward) direction.sub(frontVector)
-    if (keys.current.left) direction.add(sideVector)
-    if (keys.current.right) direction.sub(sideVector)
+    if (keys.current.forward) direction.add(front)
+    if (keys.current.backward) direction.sub(front)
+    if (keys.current.left) direction.sub(right)
+    if (keys.current.right) direction.add(right)
     if (direction.length() > 0) direction.normalize()
     api.velocity.set(direction.x * speed, currentVelocity[1], direction.z * speed)
     if (keys.current.jump && canJump) {
       api.velocity.set(currentVelocity[0], 5, currentVelocity[2])
       setCanJump(false)
     }
-    if (ref.current) {
-      camera.position.copy(ref.current.position)
-    }
+    camera.position.copy(ref.current.position)
   })
 
   return <mesh ref={ref} />
