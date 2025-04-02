@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useBox } from '@react-three/cannon'
+import { useSphere } from '@react-three/cannon'
 import * as THREE from 'three'
 
 const Player: React.FC = () => {
@@ -8,12 +8,12 @@ const Player: React.FC = () => {
   const [canJump, setCanJump] = useState(false)
   const keys = useRef({ forward: false, backward: false, left: false, right: false, jump: false })
   const speed = 5
-  const [ref, api] = useBox(() => ({
+  const [ref, api] = useSphere(() => ({
     mass: 1,
-    position: [0, 2, 0],
-    args: [0.5, 1.8, 0.5],
+    position: [0, 5, 0],
+    args: [0.5],
     fixedRotation: true,
-    linearDamping: 0.9
+    linearDamping: 0.8
   }))
 
   useEffect(() => {
@@ -63,32 +63,34 @@ const Player: React.FC = () => {
     }
   }, [])
 
-  const velocity = useRef<[number, number, number]>([0, 0, 0])
+  const velocity = useRef([0, 0, 0])
   useEffect(() => {
-    const unsubscribe = api.velocity.subscribe((v) => {
+    const unsubscribe = api.velocity.subscribe(v => {
       velocity.current = v
     })
     return unsubscribe
   }, [api.velocity])
 
   useFrame((state, delta) => {
-    if (ref.current && ref.current.position.y <= 1.05) {
+    if (ref.current && ref.current.position.y <= 0.6) {
       setCanJump(true)
     }
     const currentVelocity = velocity.current
-    const forward = new THREE.Vector3()
-    camera.getWorldDirection(forward)
-    forward.y = 0
-    forward.normalize()
-    const right = new THREE.Vector3()
-    right.crossVectors(camera.up, forward).normalize()
-    const moveDir = new THREE.Vector3()
-    if (keys.current.forward) moveDir.add(forward)
-    if (keys.current.backward) moveDir.sub(forward)
-    if (keys.current.right) moveDir.add(right)
-    if (keys.current.left) moveDir.sub(right)
-    if (moveDir.length() > 0) moveDir.normalize()
-    api.velocity.set(moveDir.x * speed, currentVelocity[1], moveDir.z * speed)
+    const frontVector = new THREE.Vector3(0, 0, -1)
+    const sideVector = new THREE.Vector3(-1, 0, 0)
+    frontVector.applyQuaternion(camera.quaternion)
+    sideVector.applyQuaternion(camera.quaternion)
+    frontVector.y = 0
+    sideVector.y = 0
+    frontVector.normalize()
+    sideVector.normalize()
+    const direction = new THREE.Vector3()
+    if (keys.current.forward) direction.add(frontVector)
+    if (keys.current.backward) direction.sub(frontVector)
+    if (keys.current.left) direction.add(sideVector)
+    if (keys.current.right) direction.sub(sideVector)
+    if (direction.length() > 0) direction.normalize()
+    api.velocity.set(direction.x * speed, currentVelocity[1], direction.z * speed)
     if (keys.current.jump && canJump) {
       api.velocity.set(currentVelocity[0], 5, currentVelocity[2])
       setCanJump(false)
